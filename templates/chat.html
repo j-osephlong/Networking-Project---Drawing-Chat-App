@@ -26,19 +26,30 @@
     <script>
         let appV = null
 
+        /*
+            Define message container componen in vue.js
+            */
         Vue.component('message-li', {
             delimiters : ['[[', ']]'],
             props: ['message'],
             template: `
-                <div class="message">
-                    <div class='name'>[[ message.name ]]</div>
-                    <div class="img-container">
-                        <img v-bind:src=" message.img ">
+                <div v-bind:class="{ 'chat-notice': (typeof message.isNotice != 'undefined'), 'message': (typeof message.isNotice == 'undefined') }">
+                    <div v-if="typeof message.isNotice == 'undefined'">
+                        <div class='name'>[[ message.name ]]</div>
+                        <div class="img-container">
+                            <img v-bind:src=" message.img ">
+                        </div>
+                        <div class="caption" v-if="message.caption != 'None'">[[ message.caption ]]</div> 
                     </div>
-                    <div class="caption" v-if="message.caption != 'None'">[[ message.caption ]]</div> 
+                    <div v-else>
+                        <span>[[ message.name ]]</span> has joined the chat!
+                    </div>
                 </div>`
         })
 
+        /* 
+            Define vue.js directive for swipe gesture (using hammer.js for detection)
+            */
         Vue.directive("swipe", {
             bind: function(el, binding) {
                 if (typeof binding.value === "function") {
@@ -49,16 +60,9 @@
             }
         });
 
-        // Vue.directive("press", {
-        //     bind: function(el, binding) {
-        //         if (typeof binding.value === "function") {
-        //             const mc = new Hammer(el);
-        //             mc.get("press").set({ time: 500});
-        //             mc.on("press", binding.value);
-        //         }
-        //     }
-        // });
-
+        /*
+            Function to handle animations for swipe gesture
+            */
         function animateOverlay(finalTop, dist = 0) 
         {
             finalTop == 0.9 ? $('#messages-container').css('height', '90%') : {}
@@ -85,6 +89,9 @@
             finalTop == 0.5 ?$('#messages-container').animate({scrollTop :  $('#messages-container').scrollTop()+ $('#bottom-overlay').height()}, 250):{}
         }
 
+        /*  
+            Handler for pen button, animates in/out pen overlay for changing pen settings
+            */
         function togglePenSettings() {
             if (!appV.penSettings)
                 $('#canvas-container').animate({opacity : 0}, 
@@ -113,6 +120,9 @@
             appV.penSettings= !appV.penSettings 
         }
 
+        /*  
+            Handler for send animation
+            */
         function sendAnimation ()
         {
             if (blank)
@@ -134,14 +144,19 @@
             })
         }
         
+        /*
+            This handler effectively acts as the JS entry point in the document like "main()"
+            */
         document.addEventListener('DOMContentLoaded', e=>{
+            //Define instance of vue.js framework to build off of
             appV = new Vue({
                 el: '#app',
                 delimiters : ['[[', ']]'],
-                data: {
+                data: { //reactive / important data defined here
                     chatID : null,
                     username : null,
                     token : null, 
+                    connected : true,
                     messages: chatMessages,
                     bottom_overlay_top: 0.5,
                     penSettings: false,
@@ -150,6 +165,10 @@
                     scrolling: false
                 },
                 mounted() {
+                    /*
+                        This mounted function is called once the vue rendering has completed,
+                        and sets up the reactive scrolling behaviour
+                        */
                     $('#messages-container').scroll((e) => {this.scrolling = true})
 
                     setInterval(() => {
@@ -157,7 +176,7 @@
                         {
                             console.log('scrolling')
                             var newMsgs
-                            if ($("#messages-container").scrollTop() < 800)
+                            if ($("#messages-container").scrollTop() < 1000)
                             {
                                 console.log('[CASE A]')
 
@@ -179,9 +198,13 @@
                             //     $("#messages-container").scrollTop(200)
                         }
                         this.scrolling = false;
-                    }, 300)
+                    }, 200)
                 },
                 methods: {
+                    /*  
+                        Preamble to animateOverlay function,
+                        determines which direction it should be animated in.
+                        */
                     overlaySwipe(event) {
                         if (!event.isFinal) return
 
@@ -200,24 +223,17 @@
                 }
             })
 
+            //get token and username from either cookies or app memory
             appV.token = getToken()
             if (appV.token != null) 
             {
                 appV.username = $cookies.get('username')
                 console.log('hh')
-                testToken()
+                testToken() //test token if found in cache to make sure it's still valid
             }
-            joinChat()
+            joinChat() //join chat room
 
-            animateOverlay(0.9)
-
-            // setTimeout(()=>{
-            //     $('#messages-container').animate({scrollTop :  $('#messages-container').prop('scrollHeight')}, 750)
-            //     $("html, body, #app").css({
-            //         height: window.innerHeight
-            //     });
-            // }, 250)
-            
+            animateOverlay(0.9)            
         });
 
     </script>
@@ -231,6 +247,12 @@
                     v-bind:message="message"
                     v-bind:key="message.id">
                 </message-li>
+                <div class="chat-notice warning" v-if="connected == false">
+                    Lost connection to server.<br>
+                    <span style="font-size: .4em;">
+                        It is possible that the server has gone down temporarily, and will require you to log back in when it starts back up. Sorry!
+                    </span>
+                </div>
             </div>
             <div id="toolbar" > 
                 <div class="toolbar-button" v-bind:class="{checked : penSettings}" onclick="togglePenSettings()">Pen</div>

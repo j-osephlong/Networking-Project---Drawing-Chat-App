@@ -121,6 +121,7 @@ canvas {
     margin: 5%;
 
     margin-right: auto;
+    overflow: hidden;
 }
 
 .message .name {
@@ -161,6 +162,25 @@ canvas {
     border-radius: 1.5em;
     overflow: hidden;
     height: fit-content;
+}
+
+.chat-notice { 
+    width: 90%;
+    height: fit-content;
+    text-align: center;
+    padding: 2vh;
+    font-weight: bold;
+    margin: 5%;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 2.5vh;
+    background-color: #e0fff27a;
+    box-sizing: border-box;
+}
+
+.chat-notice.warning {
+    background: linear-gradient(42deg, rgba(255,57,57,0.9388349089635855) 21%, rgba(255,0,0,0.9780505952380952) 100%) !important;
+    color: white;
 }
 
 .bottom-button {

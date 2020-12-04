@@ -1,17 +1,39 @@
 let i = io.connect('http://' + document.domain + ':' + location.port);
 
 let chatMessages = []
+let numOfNotices = 0
 
 i.on('chatRedirect', (res)=>{console.log(res)})
-i.on('userJoined', (res)=>{console.log(res)})
+i.on('userJoined', (res)=>{
+    if(res['username'] == appV.username)
+        return
+    chatMessages.push({
+        name:res['username'],
+        isNotice:true,
+        id:appV.messages.length + numOfNotices
+    })
+    numOfNotices++
+})
 i.on('newMessage', (res)=>{
     chatMessages.push({
         name: res['userName'],
         img: res['imgData'],
-        id: res['msgID'],
+        id: parseInt(res['msgID'])+numOfNotices,
         caption: res['caption']
     })
     $('#messages-container').animate({scrollTop :  $('#messages-container').prop('scrollHeight')}, 750)
+})
+i.on('disconnect', ()=>{
+    console.log("[chat.js] Lost connection")
+    appV.connected = false
+    setTimeout(()=>{
+        $('#messages-container').animate({scrollTop :  $('#messages-container').prop('scrollHeight')}, 750)
+    }, 200)
+})
+i.on('reconnect', ()=>{
+    console.log("[chat.js] Regained connection")
+    appV.connected = true
+    testToken()
 })
 
 function joinChat() {
@@ -93,7 +115,7 @@ function fetchMessages (offset, n) {
         cache: false,
         contentType: false,
         processData: false,
-        data: JSON.stringify({'userName':appV.username,'token':getToken(), 'chatID':appV.chatID, 'offset':offset, 'n':n}),
+        data: JSON.stringify({'userName':appV.username,'token':getToken(), 'chatID':appV.chatID, 'offset':(offset-numOfNotices), 'n':n}),
         type: 'POST', 
         async: false,
         error: (res)=>{
@@ -121,7 +143,7 @@ function fetchMessages (offset, n) {
             newBatch.push({
                 name: el['username'],
                 img: el['img'],
-                id: el['msgID'],
+                id: (parseInt(el['msgID']) + numOfNotices),
                 caption: el['caption']
             })
         });
